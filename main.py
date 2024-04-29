@@ -1,9 +1,9 @@
-# pip install ttkbootstrap stiliaus biblioteka
-
 import tkinter as tk
-# import tkinter.ttk as ttk
 import math
 from abc import ABC, abstractmethod
+
+from component_cls_constants import EVSConstants, ResistorConstants 
+
 
 class ComponentBuilder(ABC):
     @abstractmethod
@@ -192,79 +192,8 @@ class ComponentDirector():
         return builder.get_component()
     
 
-class EVSConstants():
-    ORIGIN_X = 50
-    ORIGIN_Y = 50
-
-    CONTACT1_OFFSET_X1 = -10
-    CONTACT1_OFFSET_Y1 = 30
-    CONTACT1_OFFSET_X2 = -20
-    CONTACT1_OFFSET_Y2 = 40
-
-    CONTACT2_OFFSET_X1 = 80
-    CONTACT2_OFFSET_Y1 = 30
-    CONTACT2_OFFSET_X2 = 90
-    CONTACT2_OFFSET_Y2 = 40
-
-    CONTACT1_LIST_PLACE = 0
-    CONTACT2_LIST_PLACE = 1
-
-    TEXT_OFFSET_X = 30
-    TEXT_OFFSET_Y = 90
-
-    DEFAULT_VALUE = 12
-    DEFAULT_NAME = "EV1"
-
-    DEFAULT_WIDTH = 70
-    DEFAULT_HEIGHT = 70
-
-    DEFAULT_FILL_COLOR = "black"
-    DEFAULT_OUTLINE_COLOR = "white"
-    DEFAULT_BODY_OUTLINE_WIDTH = 5
-    DEFAULT_CONTACT_OUTLINE_WIDTH = 3
-
-    DEFAULT_COMPONENT_FONT = ("Helvetica", 12, 'bold')
-    DEFAULT_FONT_COLOR = "white"
-
-
-class ResistorConstants():
-    ORIGIN_X = 50
-    ORIGIN_Y = 50
-
-    CONTACT1_OFFSET_X1 = -10
-    CONTACT1_OFFSET_Y1 = 15
-    CONTACT1_OFFSET_X2 = -20
-    CONTACT1_OFFSET_Y2 = 25
-
-    CONTACT2_OFFSET_X1 = 110
-    CONTACT2_OFFSET_Y1 = 15
-    CONTACT2_OFFSET_X2 = 120
-    CONTACT2_OFFSET_Y2 = 25
-
-    CONTACT1_LIST_PLACE = 0
-    CONTACT2_LIST_PLACE = 1
-
-    TEXT_OFFSET_X = 50
-    TEXT_OFFSET_Y = 50
-
-    DEFAULT_VALUE = 1000
-    DEFAULT_NAME = "R1"
-
-    DEFAULT_WIDTH = 100
-    DEFAULT_HEIGHT = 40
-
-    DEFAULT_FILL_COLOR = "black"
-    DEFAULT_OUTLINE_COLOR = "white"
-    DEFAULT_BODY_OUTLINE_WIDTH = 5
-    DEFAULT_CONTACT_OUTLINE_WIDTH = 3
-
-    DEFAULT_COMPONENT_FONT = ("Helvetica", 12, 'bold')
-    DEFAULT_FONT_COLOR = "white"
-
-
 class ButtonSyles():
     pass
-
 
 
 class Screen_elements:
