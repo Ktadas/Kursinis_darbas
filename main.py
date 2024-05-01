@@ -2,7 +2,7 @@ import tkinter as tk
 import math
 from abc import ABC, abstractmethod
 
-from component_cls_constants import EVSConstants, ResistorConstants 
+from component_cls_constants import EVSConstants, ResistorConstants, ContactOffsets, TextOffset
 
 
 class ComponentBuilder(ABC):
@@ -60,10 +60,14 @@ class EVSComponentBuilder(ComponentBuilder):
 
         # Pagrindines komponento kontaktu koordinates
         self.component.contact_coords = [
-            [x+EVSConstants.CONTACT1_OFFSET_X1, y+EVSConstants.CONTACT1_OFFSET_Y1, 
-             x+EVSConstants.CONTACT1_OFFSET_X2, y+EVSConstants.CONTACT1_OFFSET_Y2],
-            [x+EVSConstants.CONTACT2_OFFSET_X1, y+EVSConstants.CONTACT2_OFFSET_Y1, 
-             x+EVSConstants.CONTACT2_OFFSET_X2, y+EVSConstants.CONTACT2_OFFSET_Y2]]
+            [x+EVSConstants.CONTACT1_OFFSET.x1, y+EVSConstants.CONTACT1_OFFSET.y1, 
+             x+EVSConstants.CONTACT1_OFFSET.x2, y+EVSConstants.CONTACT1_OFFSET.y2],
+            [x+EVSConstants.CONTACT2_OFFSET.x1, y+EVSConstants.CONTACT2_OFFSET.y1, 
+             x+EVSConstants.CONTACT2_OFFSET.x2, y+EVSConstants.CONTACT2_OFFSET.y2]]
+        
+        # Irasomi ofsetai, kad objektas galetu tai pasiekti, kai reikia perkelti komponenta ir ji perpiesti
+        self.component.CONTACT1_OFFSET = EVSConstants.CONTACT1_OFFSET 
+        self.component.CONTACT2_OFFSET = EVSConstants.CONTACT2_OFFSET
 
     def set_main_parameters(self):
         self.component.value = EVSConstants.DEFAULT_VALUE
@@ -92,8 +96,12 @@ class EVSComponentBuilder(ComponentBuilder):
     def init_draw_component_text(self):
         x = EVSConstants.ORIGIN_X
         y = EVSConstants.ORIGIN_Y
-        self.component.textBox = self.canvas.create_text(x+EVSConstants.TEXT_OFFSET_X,
-                                                         y+EVSConstants.TEXT_OFFSET_Y, 
+
+        # Irasomi ofsetai, kad objektas galetu tai pasiekti, kai reikia perkelti komponenta ir ji perpiesti
+        self.component.TEXT_OFFSET = EVSConstants.TEXT_OFFSET
+
+        self.component.textBox = self.canvas.create_text(x+EVSConstants.TEXT_OFFSET.x,
+                                                         y+EVSConstants.TEXT_OFFSET.y, 
                                                          text=self.component.fullName,
                                                          fill=EVSConstants.DEFAULT_FONT_COLOR,
                                                          font=EVSConstants.DEFAULT_COMPONENT_FONT)
@@ -132,10 +140,13 @@ class ResistorComponentBuilder(ComponentBuilder):
 
         # Pagrindines komponento kontaktu koordinates
         self.component.contact_coords = [
-            [x+ResistorConstants.CONTACT1_OFFSET_X1, y+ResistorConstants.CONTACT1_OFFSET_Y1, 
-             x+ResistorConstants.CONTACT1_OFFSET_X2, y+ResistorConstants.CONTACT1_OFFSET_Y2],
-            [x+ResistorConstants.CONTACT2_OFFSET_X1, y+ResistorConstants.CONTACT2_OFFSET_Y1, 
-             x+ResistorConstants.CONTACT2_OFFSET_X2, y+ResistorConstants.CONTACT2_OFFSET_Y2]]
+            [x+ResistorConstants.CONTACT1_OFFSET.x1, y+ResistorConstants.CONTACT1_OFFSET.y1, 
+             x+ResistorConstants.CONTACT1_OFFSET.x2, y+ResistorConstants.CONTACT1_OFFSET.y2],
+            [x+ResistorConstants.CONTACT2_OFFSET.x1, y+ResistorConstants.CONTACT2_OFFSET.y1, 
+             x+ResistorConstants.CONTACT2_OFFSET.x2, y+ResistorConstants.CONTACT2_OFFSET.y2]]
+        
+        self.component.CONTACT1_OFFSET = ResistorConstants.CONTACT1_OFFSET 
+        self.component.CONTACT2_OFFSET = ResistorConstants.CONTACT2_OFFSET
 
     def set_main_parameters(self):
         self.component.value = ResistorConstants.DEFAULT_VALUE
@@ -164,8 +175,11 @@ class ResistorComponentBuilder(ComponentBuilder):
     def init_draw_component_text(self):
         x = ResistorConstants.ORIGIN_X
         y = ResistorConstants.ORIGIN_Y
-        self.component.textBox = self.canvas.create_text(x+ResistorConstants.TEXT_OFFSET_X,
-                                                         y+ResistorConstants.TEXT_OFFSET_Y, 
+
+        self.component.TEXT_OFFSET = ResistorConstants.TEXT_OFFSET
+
+        self.component.textBox = self.canvas.create_text(x+ResistorConstants.TEXT_OFFSET.x,
+                                                         y+ResistorConstants.TEXT_OFFSET.y, 
                                                          text=self.component.fullName, 
                                                          fill=ResistorConstants.DEFAULT_FONT_COLOR, 
                                                          font=ResistorConstants.DEFAULT_COMPONENT_FONT)
@@ -192,10 +206,6 @@ class ComponentDirector():
         return builder.get_component()
     
 
-class ButtonSyles():
-    pass
-
-
 class Screen_elements:
     def __init__(self, main_window, window, canvas):
         self.resistors = []
@@ -210,7 +220,6 @@ class Screen_elements:
 
         # Pagrindinis komponentu buildinimo objektas
         self.component_director = ComponentDirector()
-
 
     def add_resistor(self):
         if len(self.resistors) > 1:
@@ -239,7 +248,6 @@ class Screen_elements:
         else:
             self.wires.append(Wire(self.window, self.canvas, self.resistors, self.evsources))
             print(f"Appended wire {self.wires[-1]}") # paskutini sarase parodau
-
 
     def display_short_message(self, send_message, time=1800):
         # Metodas error zinutems
@@ -292,8 +300,6 @@ class Wire:
         self.wire_draw_enabled = False # Kad zinociau, ar patrigerinus mouse_moved reikia piesti laida ar, dar nepradetas
         # piesimas
 
-
-
     def check_if_contact(self, event):
         # Paimu koordinates, kur paspaudziau
         x = self.canvas.canvasx(event.x)
@@ -330,7 +336,6 @@ class Wire:
                     print(contact)
                     break
 
-
     def link_contact_to_wire(self, component, s_f_state, contact_place):
         if all(element is not None for element in component.linked_wire_objects[contact_place]):
             print("Kontaktas uzimtas")
@@ -340,8 +345,6 @@ class Wire:
             component.linked_wire_objects[contact_place][0] = self # Perduodu laido objekta komponento objektui
             component.linked_wire_objects[contact_place][1] = s_f_state # Perduodu ar tai yra laido pradzia, ar pabaiga
             return 1 # success
-
-
 
     def start_wire_draw(self, component, contact_coords, contact_place):
         # Susiejam objekto (komponento - ev arba resisotriaus) kontakta su tam tikru laido objektu, svarbu, pasakyti, ar cia laido pradzia, ar pabaiga.
@@ -356,8 +359,6 @@ class Wire:
             print(f"{self.x_start_line}, {self.y_start_line}, {self.cur_mouse_posx}, {self.cur_mouse_posy}")
 
             self.wire_line = self.canvas.create_line(self.x_start_line, self.y_start_line, self.cur_mouse_posx, self.cur_mouse_posy, fill="#4e4c70", width=5)
-
-        
 
     def finish_wire_draw(self, component, contact_coords, contact_place):
         # Susiejam objekto (komponento - ev arba resisotriaus) kontakta su tam tikru laido objektu, svarbu, pasakyti, ar cia laido pradzia, ar pabaiga.
@@ -377,7 +378,6 @@ class Wire:
             #Istrinami listeneriai, kad nebebutu piesiami papildomi laidai.
             self.canvas.unbind('<Button-1>', self.mouse_click_listener)
             self.canvas.unbind('<Motion>', self.mouse_motion_listener)
-
 
     def mouse_moved(self, event):
         self.cur_mouse_posx = self.canvas.canvasx(event.x) # Paupdatinama peles pozicija, nepamirsti, kad perkonvertinu
@@ -399,6 +399,8 @@ class Component():
         self.offset_x = None
         self.offset_y = None
         self.contact_coords = None
+        self.CONTACT1_OFFSET = None
+        self.CONTACT2_OFFSET = None
 
         self.value = None
         self.name = None
@@ -411,6 +413,7 @@ class Component():
         self.comp_body_obj = None
 
         self.textBox = None
+        self.TEXT_OFFSET = None
 
         # canvas tag bindai
         # 
@@ -421,6 +424,20 @@ class Component():
         # Taip pat, cia issaugota, ar tas laidas nuo sio komponento prasideda, ar baigiasi, tai svarbu laido perpiesime
     
     # self.canvas.canvasx(event.x) # lango koordinates yra perverciamos i drobes koordinates
+
+    def offset_coordinates(self, origin_x, origin_y, offsets):
+        if isinstance(offsets, ContactOffsets): #
+            return [
+                origin_x + offsets.x1, 
+                origin_y + offsets.y1, 
+                origin_x + offsets.x2, 
+                origin_y + offsets.y2
+            ]
+        elif isinstance(offsets, TextOffset):
+            return [
+                origin_x + offsets.x,
+                origin_y + offsets.y
+            ]
 
     def on_click(self, event):
         self.offset_x = self.canvas.canvasx(event.x)-self.x # apskaiciuojama ofesto pozicija, kad blokas butu tempiamas, nuo ten kur paspaudziau.
@@ -437,11 +454,12 @@ class Component():
         self.y = y 
 
         # Keiciamios ir kontaktu koordinates
-        self.contact_coords = [[x-10, y+30, x-20, y+40], [x+80, y+30, x+90, y+40]]
+        self.contact_coords = [self.offset_coordinates(x, y, self.CONTACT1_OFFSET), self.offset_coordinates(x, y, self.CONTACT2_OFFSET)]
         # 
 
         self.canvas.coords(self.comp_body_obj, x, y, x + self.width, y + self.height) # Tempiam rezistoriu
-        self.canvas.coords(self.textBox, x+30, y+90) # Tempiam jo teksta, pridetas offestas, kad butu tekstas apacioj
+        self.canvas.coords(self.textBox, *(self.offset_coordinates(x, y, self.TEXT_OFFSET))) # Tempiam jo teksta, pridetas offestas, kad butu tekstas apacioj
+        
         self.canvas.coords(self.contact_1_obj, *(self.contact_coords[0]))
         self.canvas.coords(self.contact_2_obj, *(self.contact_coords[1]))
 
@@ -473,9 +491,6 @@ class Component():
                     wire.x_finish_line = cx
                     wire.y_finish_line = cy
 
-            
-
-
     def on_double_click(self, event):
         self.mod_menu = tk.Toplevel(self.window)
         self.mod_menu.title("Modify EV source: ")
@@ -489,7 +504,6 @@ class Component():
 
         delete_button = tk.Button(self.mod_menu, text="Remove EV source", command=self.handle_component_delete)
         delete_button.grid(column=1, row=2, sticky="nsew") # centruojam su nsew
-
 
     def handle_mod_menu_close(self):
         # Pakeiciame teksta:
@@ -509,128 +523,6 @@ class Component():
         del self.mod_menu, self.entry # Nzn ar cia butina
 
     
-        
-            
-
-# class Resistor():
-#     def __init__(self, window, canvas, x, y, color, value, name, width = 100, height = 40):
-#         self.canvas = canvas
-#         self.window = window
-#         self.rect = canvas.create_rectangle(x, y, x + width, y + height, fill=color, outline="white", width = 5)
-
-
-#         # Dvieju kontaktu koordinates
-#         self.contact_coords = [[x-10, y+15, x-20, y+25], [x+110, y+15, x+120, y+25]]
-
-#         self.contact1 = canvas.create_oval(*(self.contact_coords[0]), fill=color, outline="white", width = 3)
-#         self.contact2 = canvas.create_oval(*(self.contact_coords[1]), fill=color, outline="white", width = 3)
-
-#         self.width = width
-#         self.height = height
-
-#         self.value = value
-#         self.name = name
-#         fullName = name + " " + str(value) + " omh"
-#         # UZDETI CHEKA, AR IVEDZIAU SKAICIU!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#         self.textBox = canvas.create_text(x+50, y+50, text=fullName, fill="white", font=("Helvetica", 12, 'bold'))
-
-#         self.x = x
-#         self.y = y
-
-#         self.offset_x = 0
-#         self.offset_y = 0
-
-#         self.canvas.tag_bind(self.rect, '<Button-1>', self.on_click) # Paspaudimui
-#         self.canvas.tag_bind(self.rect, '<B1-Motion>', self.on_drag) # Tempimui
-#         self.canvas.tag_bind(self.rect, '<Double-Button-1>', self.on_double_click) # Dvigubam paspaudimui
-
-
-#         self.linked_wire_objects = [[None, None], [None, None]] # max 2 # LABAI svarbu tai, kad pirmoje pozicijoje yra pirmas kontaktas, antroje - antras
-#         # Taip pat, cia issaugota, ar tas laidas nuo sio komponento prasideda, ar baigiasi, tai svarbu laido perpiesime
-    
-#     # self.canvas.canvasx(event.x) # lango koordinates yra perverciamos i drobes koordinates
-
-#     def on_click(self, event):
-#         self.offset_x = self.canvas.canvasx(event.x)-self.x # apskaiciuojama ofesto pozicija, kad blokas butu tempiamas, nuo ten kur paspaudziau.
-#         self.offset_y = self.canvas.canvasy(event.y)-self.y # skaiciuojama nuo virsutinio kairiojo kampo
-    
-#     def on_drag(self, event):
-#         x = self.canvas.canvasx(event.x) # Gaunu, kur tempiamas blokas 
-#         y = self.canvas.canvasy(event.y)
-
-#         x = x - self.offset_x # Pakoreguoju, kad blokas butu tempiamas, nuo ten, kur paspaude pele
-#         y = y - self.offset_y
-
-#         self.x = x # Irasau naujas koordinates
-#         self.y = y 
-
-#         # Keiciamios ir kontaktu koordinates
-#         self.contact_coords = [[x-10, y+15, x-20, y+25], [x+110, y+15, x+120, y+25]]
-#         # 
-
-#         self.canvas.coords(self.rect, x, y, x + self.width, y + self.height) # Tempiam rezistoriu
-#         self.canvas.coords(self.textBox, x+50, y+50) # Tempiam jo teksta, pridetas offestas, kad butu tekstas apacioj
-#         self.canvas.coords(self.contact1, *(self.contact_coords[0]))
-#         self.canvas.coords(self.contact2, *(self.contact_coords[1]))
-
-#         self.handle_connected_wire_move()
-
-#     def handle_connected_wire_move(self):
-#         [wire1, wire1_s_f] = self.linked_wire_objects[0]
-#         [wire2, wire_2_s_f] = self.linked_wire_objects[1]
-
-#         wires = [wire1, wire2] # Del for loopo ir kodo nekopinimo
-#         wire_positions = [wire1_s_f, wire_2_s_f] # Del for loopo ir kodo nekopinimo
-
-#         # Index del to, kad nereiktu kopijuoti kodo, tiesiog is eiles pereinama per listus ir koordinates atitinkamai pagal pozicija.
-#         for index, wire in enumerate(wires):
-#         # If del patikrinimo, ar ten yra laidas is viso
-#             if(wire is not None):
-#                 if(wire_positions[index] == 0): # Jeigu, prie komponento kontakto laidas prasidejo, tai piesime ji nuo PABAIGOS KOORDIANCIU iki nauju kontakto koordinaciu
-#                     cx = self.contact_coords[index][0]
-#                     cy = self.contact_coords[index][1]
-#                     self.canvas.coords(wire.wire_line, wire.x_finish_line, wire.y_finish_line, cx, cy)
-#                     # Kita puse koordianciu turi buti perrasoma, nes ji pasikeis.
-#                     wire.x_start_line = cx
-#                     wire.y_start_line = cy
-#                 else: # Jeigu, prie komponento kontakto laidas pasibaige, tai piesime ji nuo PRADZIOS KOORDIANCIU iki nauju kontakto koordinaciu
-#                     cx = self.contact_coords[index][0]
-#                     cy = self.contact_coords[index][1]
-#                     self.canvas.coords(wire.wire_line, wire.x_start_line, wire.y_start_line, cx, cy)
-#                     # Kita puse koordianciu turi buti perrasoma, nes ji pasikeis.
-#                     wire.x_finish_line = cx
-#                     wire.y_finish_line = cy 
-
-
-    
-
-#     def on_double_click(self, event):
-#         self.mod_menu = tk.Toplevel(self.window)
-#         self.mod_menu.title("Modify resistor: ")
-#         self.mod_menu.geometry("300x300")
-
-#         self.entry = tk.Entry(self.mod_menu)
-#         self.entry.grid(column=1, row=0, sticky="nsew") # centruojam su nsew
-
-#         accept_button = tk.Button(self.mod_menu, text="OK", command=self.handle_mod_menu_close)
-#         accept_button.grid(column=1, row=1, sticky="nsew") # centruojam su nsew
-
-#         delete_button = tk.Button(self.mod_menu, text="Remove resistor", command=self.handle_component_delete)
-#         delete_button.grid(column=1, row=2, sticky="nsew") # centruojam su nsew
-
-
-#     def handle_mod_menu_close(self):
-#         # Pakeiciame teksta:
-#         modifiedText = self.entry.get()
-#         self.canvas.itemconfig(self.textBox, text=modifiedText)
-
-#         # Isnaikinam viska su mod_meniu
-#         self.mod_menu.destroy()
-#         del self.mod_menu, self.entry # Nzn ar cia butina
-
-#     def handle_component_delete(self):
-#         pass
-
 
 # Lango framu isdestymas:
 # window:
