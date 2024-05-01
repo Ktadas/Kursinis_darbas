@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, PhotoImage, Label
 
+import os
 import math
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -323,7 +324,14 @@ class Screen_elements:
         now = datetime.now()
         time_string = now.strftime("%Y%m%d_%H%M%S")
 
-        image_name = f"Kursinis_darbas/Simulation_results/potential_diagram{time_string}.png"
+        # Sukuriamas failo vardas su path
+        path_name = "Kursinis_darbas/Simulation_results/"
+        image_name = f"{path_name}potential_diagram{time_string}.png"
+
+        # Jeigu nera, sukuriamas path
+        if not os.path.exists(path_name):
+            os.makedirs(path_name)
+
         # Issaugoma diagrama
         plt.savefig(image_name)
 
