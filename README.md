@@ -2,11 +2,11 @@
 
 ## Introduction 
 
-pip install ttkbootstrap stiliaus biblioteka
-
 1. What is your application?
-2. How to run the program? 
-3. How to use the program?
+2. How to run the program?
+  3. `pip install tkinter`
+  4. `pip install matplotlib`
+6. How to use the program?
 
 ## Body/Analysis
 
