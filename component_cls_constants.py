@@ -17,10 +17,11 @@ class EVSConstants():
     CONTACT1_LIST_PLACE = 0
     CONTACT2_LIST_PLACE = 1
 
-    TEXT_OFFSET = TextOffset(30, 90)
+    TEXT_OFFSET = TextOffset(35, 90)
 
     DEFAULT_VALUE = 12
-    DEFAULT_NAME = "EV1"
+    DEFAULT_NAME = "EV"
+    DEFAULT_SYMBOL = "V"
 
     DEFAULT_WIDTH = 70
     DEFAULT_HEIGHT = 70
@@ -47,7 +48,8 @@ class ResistorConstants():
     TEXT_OFFSET = TextOffset(50, 50)
 
     DEFAULT_VALUE = 1000
-    DEFAULT_NAME = "R1"
+    DEFAULT_NAME = "R"
+    DEFAULT_SYMBOL = "Ω"
 
     DEFAULT_WIDTH = 100
     DEFAULT_HEIGHT = 40

@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 import math
 from abc import ABC, abstractmethod
 
@@ -36,10 +37,16 @@ class ComponentBuilder(ABC):
 
 
 class EVSComponentBuilder(ComponentBuilder):
+    _evs_id_system = 1 # id trackeris
+
     def __init__(self, window, canvas):
         self.component = Component() # Pagrindinio ojekto inicializacija
         self.window = window
         self.canvas = canvas
+
+    # komponentui suteikiamas id
+        self.component._id = EVSComponentBuilder._evs_id_system
+        EVSComponentBuilder._evs_id_system += 1
 
     # INIT metodu implementacija
     def pass_gui_elements(self):
@@ -72,8 +79,9 @@ class EVSComponentBuilder(ComponentBuilder):
     def set_main_parameters(self):
         self.component.value = EVSConstants.DEFAULT_VALUE
         self.component.name = EVSConstants.DEFAULT_NAME
+        self.component.symbol = EVSConstants.DEFAULT_SYMBOL
         name = EVSConstants.DEFAULT_NAME
-        self.component.fullName = name + " " + str(self.component.value) + " V"
+        self.component.fullName = name + str(self.component._id) + " " + str(self.component.value) + " " + self.component.symbol
         self.component.width = EVSConstants.DEFAULT_WIDTH
         self.component.height = EVSConstants.DEFAULT_HEIGHT
 
@@ -116,10 +124,16 @@ class EVSComponentBuilder(ComponentBuilder):
 
 
 class ResistorComponentBuilder(ComponentBuilder):
+    _resistor_id_system = 1 # id trackeris
+
     def __init__(self, window, canvas):
         self.component = Component() # Pagrindinio ojekto inicializacija
         self.window = window
         self.canvas = canvas
+
+        # komponentui suteikiamas id
+        self.component._id = ResistorComponentBuilder._resistor_id_system
+        ResistorComponentBuilder._resistor_id_system += 1
 
     # INIT metodu implementacija
     def pass_gui_elements(self):
@@ -150,9 +164,10 @@ class ResistorComponentBuilder(ComponentBuilder):
 
     def set_main_parameters(self):
         self.component.value = ResistorConstants.DEFAULT_VALUE
+        self.component.symbol = ResistorConstants.DEFAULT_SYMBOL
         self.component.name = ResistorConstants.DEFAULT_NAME
         name = ResistorConstants.DEFAULT_NAME
-        self.component.fullName = name + " " + str(self.component.value) + " V"
+        self.component.fullName = name + str(self.component._id) + " " + str(self.component.value) + " " + self.component.symbol
         self.component.width = ResistorConstants.DEFAULT_WIDTH
         self.component.height = ResistorConstants.DEFAULT_HEIGHT
 
@@ -216,7 +231,7 @@ class Screen_elements:
         self.main_window = main_window
         # self.resistorCount Neaisku, ar reikes, ar tiesiog su listo dydziu apsieisiu
 
-        self.popup = None # Palceholderis zinutes popupui, None dar del patikrinimo, ar jau atidarytas langas toks, kad nesikartotu.
+        self.popup = None # Palceholderis zinutes popupui, None dar del patikrinimo, ar jau atidarytas langas toks, kad nesikartotu. *****LEGACY*****
 
         # Pagrindinis komponentu buildinimo objektas
         self.component_director = ComponentDirector()
@@ -224,30 +239,86 @@ class Screen_elements:
     def add_resistor(self):
         if len(self.resistors) > 1:
             print("Max rezistoriu skaicius yra 2")
-            self.display_short_message("Max rezistoriu skaicius yra 2")
+            # self.display_short_message("Max rezistoriu skaicius yra 2") LEGACY
+            messagebox.showerror("Error", "Max number of resistors is 2")
         else:
             resistor = ResistorComponentBuilder(self.window, self.canvas) # Komponento builderis
             resistor_obj = self.component_director.buildComponent(resistor) # Inicializuojami parametrai, grazinamas paruostas objektas
+
             self.resistors.append(resistor_obj)
             print(f"Appended resistor {self.resistors[-1]}") # paskutini sarase parodau
 
     def add_ev_source(self):
         if len(self.evsources) > 0:
             print("Max EV saltiniu skaicius yra 1")
-            self.display_short_message("Max EV saltiniu skaicius yra 1")
+            # self.display_short_message("Max EV saltiniu skaicius yra 1")
+            messagebox.showerror("Error", "Max number of EV sources is 1")
         else:
             evsource = EVSComponentBuilder(self.window, self.canvas)
             evsource_obj = self.component_director.buildComponent(evsource)
+
             self.evsources.append(evsource_obj)
             print(f"Appended wire {self.evsources[-1]}") # paskutini sarase parodau
 
     def add_wire(self):
         if len(self.wires) > 2:
             print("Max laidu skaicius yra 3")
-            self.display_short_message("Max laidu skaicius yra 3")
+            # self.display_short_message("Max laidu skaicius yra 3")
+            messagebox.showerror("Error", "Max number of wires is 3")
         else:
             self.wires.append(Wire(self.window, self.canvas, self.resistors, self.evsources))
             print(f"Appended wire {self.wires[-1]}") # paskutini sarase parodau
+    
+    def basic_series_simulation_start(self):
+        if len(self.evsources) == 0:
+            messagebox.showerror("Error", "The circuit has no EV sources\n Not possible to complete simulation")
+            return -1
+        elif len(self.resistors) == 0:
+            messagebox.showerror("Error", "The circuit has no resistors\n Not possible to complete simulation")
+            return -1
+        else:
+            # Jeigu komponentu pakanka, simuliacija pradedama
+            self.complete_basic_series_simulation()
+
+
+    def complete_basic_series_simulation(self):
+        # gaunama pagrindinio saltinio itampa
+        # kadangi, simuliatorius kol kas leidzia tik viena saltini, tai paimamas tik pirmas ir vienintelis narys 
+        mainvoltage = self.evsources[0].return_component_value()
+
+        resistor_values = []
+
+        for resistor in self.resistors:
+            resistor_values.append((resistor.return_component_name(), resistor.return_component_value())) # Surasomi komponentai i ir ju vertes i lista
+
+        # Pagal Omo desni apskaiciuojama visos grandines srove
+        circuit_current = mainvoltage/sum(value for _, value in resistor_values) # ismetamas pirmas narys - vardas sumuojant
+
+        # Pagal Omo desni U = RI (U = R_i*circuit_current) apskaiciuojamos rezistoriu itampos
+        resistor_voltages = [(name, r_i*circuit_current) for name, r_i in resistor_values] # perrasomi rezistoriu vardai ir apskaiciuojamos ju itampos
+
+        self.show_complete_basic_series_simulation_results(mainvoltage, circuit_current, resistor_voltages)
+
+        # Potencialu diagrama
+
+        
+
+    def show_complete_basic_series_simulation_results(self, mainvoltage, circuit_current, resistor_voltages):
+        self.results_window = tk.Toplevel(self.window) # Naujas top lygio langas rezultatu atvaizdavimui
+        self.results_window.title("Simulation results")
+        self.results_window.geometry("500x500")
+
+        listbox = tk.Listbox(self.results_window) # Elementas listams suvesti
+        listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True) # Listo teksto komponento centravimas ir t.t.
+
+        listbox.insert(tk.END, f"Circuit voltage: {mainvoltage:.7f} V") # Atvaizduojami grandines itampa ir srove
+        listbox.insert(tk.END, f"Circuit current: {circuit_current:.7f} A")
+
+        for name, voltage in resistor_voltages: # Atvaizduojamos rezistoriu itampos
+            listbox.insert(tk.END, f"{name}: {voltage:.7f} V")
+
+
+        
 
     def display_short_message(self, send_message, time=1800):
         # Metodas error zinutems
@@ -267,6 +338,15 @@ class Screen_elements:
     def display_short_message_destroy(self):
         self.popup.destroy()
         self.popup = None
+
+    def open_delete_component_window(self):
+        # atidaromas langas, kuris parodo visus komponentus, kuriuos galima trinti
+        pass
+
+    def delete_component(self):
+        # component.handle_component_delete
+        # wire.handle_component_delete
+        pass
             
 
 class Wire:
@@ -386,13 +466,19 @@ class Wire:
         if self.wire_draw_enabled == True:
             #Updatinami laido matmenys
             self.canvas.coords(self.wire_line, self.x_start_line, self.y_start_line, self.cur_mouse_posx, self.cur_mouse_posy)
-        # self.wire_line = canvas.create_line()
+    
+    def handle_wire_delete():
+        # del wire tag binds
+        # del wire line object
+        pass
 
 
 class Component():
     def __init__(self):
         self.canvas = None
         self.window = None
+
+        self._id = None
         
         self.x = None
         self.y = None
@@ -403,6 +489,7 @@ class Component():
         self.CONTACT2_OFFSET = None
 
         self.value = None
+        self.symbol = None
         self.name = None
         self.fullName = None
         self.width = None
@@ -423,10 +510,8 @@ class Component():
         self.linked_wire_objects = [[None, None], [None, None]] # max 2 # LABAI svarbu tai, kad pirmoje pozicijoje yra pirmas kontaktas, antroje - antras
         # Taip pat, cia issaugota, ar tas laidas nuo sio komponento prasideda, ar baigiasi, tai svarbu laido perpiesime
     
-    # self.canvas.canvasx(event.x) # lango koordinates yra perverciamos i drobes koordinates
-
     def offset_coordinates(self, origin_x, origin_y, offsets):
-        if isinstance(offsets, ContactOffsets): #
+        if isinstance(offsets, ContactOffsets): # Du offsetinimo varinatai, nes tekstui reikia tik vienu koordinaciu offsetintu
             return [
                 origin_x + offsets.x1, 
                 origin_y + offsets.y1, 
@@ -493,34 +578,54 @@ class Component():
 
     def on_double_click(self, event):
         self.mod_menu = tk.Toplevel(self.window)
-        self.mod_menu.title("Modify EV source: ")
+        self.mod_menu.title("Modifing " + self.fullName + " : ")
         self.mod_menu.geometry("500x500")
 
+        # Centruojami komponentai
+        self.mod_menu.grid_columnconfigure(0, weight=1)
+        self.mod_menu.grid_columnconfigure(2, weight=1)
+        self.mod_menu.grid_rowconfigure(0, weight=1)
+        self.mod_menu.grid_rowconfigure(3, weight=1)
+
+        label = tk.Label(self.mod_menu, text="Enter a new value: ")
+        label.grid(column=1, row=0, sticky="nsew") # centruojam su nsew
+
         self.entry = tk.Entry(self.mod_menu)
-        self.entry.grid(column=1, row=0, sticky="nsew") # centruojam su nsew
+        self.entry.grid(column=1, row=1, sticky="nsew") # centruojam su nsew
 
         accept_button = tk.Button(self.mod_menu, text="OK", command=self.handle_mod_menu_close)
-        accept_button.grid(column=1, row=1, sticky="nsew") # centruojam su nsew
-
-        delete_button = tk.Button(self.mod_menu, text="Remove EV source", command=self.handle_component_delete)
-        delete_button.grid(column=1, row=2, sticky="nsew") # centruojam su nsew
+        accept_button.grid(column=1, row=2, sticky="nsew") # centruojam su nsew
 
     def handle_mod_menu_close(self):
         # Pakeiciame teksta:
-        modifiedText = self.entry.get()
-        self.canvas.itemconfig(self.textBox, text=modifiedText)
+        modifiedValue = self.entry.get()
 
-        # Isnaikinam viska su mod_meniu
-        self.mod_menu.destroy()
-        del self.mod_menu, self.entry # Nzn ar cia butina
+        if modifiedValue.isdigit() and int(modifiedValue) != 0:
+            self.value = int(modifiedValue) # Irasoma nauja komponento verte
+
+            # Suformatuojam nauja komponento varda ir irasome ji teksto lauka
+            self.fullName = f"{self.name}{self._id} {modifiedValue} {self.symbol}"
+            self.canvas.itemconfig(self.textBox, text=self.fullName)
+
+            # Isnaikinam viska su mod_meniu
+            self.mod_menu.destroy()
+            del self.mod_menu, self.entry # Nzn ar cia butina
+        else:
+            messagebox.showerror("Invalid Input", "Please enter a valid number without spaces or zero.")
 
     def handle_component_delete(self):
-        # Pakeiciame istrinam evs:
-        
-        ###
-        # Isnaikinam viska su mod_meniu
-        self.mod_menu.destroy()
-        del self.mod_menu, self.entry # Nzn ar cia butina
+        # del component tag binds
+        # del component canvas body object
+        # del component canvas text object
+
+        # return wires to be deleted???
+        pass
+
+    def return_component_value(self):
+        return self.value
+
+    def return_component_name(self):
+        return f"{self.name}{self._id}"
 
     
 
@@ -557,17 +662,16 @@ def main():
     subgrid2.grid(column=2, row=0)
 
 
-    canvas = tk.Canvas(main_grid, width=700, height=700, bg=main_back_c, highlightbackground='#4e4c70', highlightthickness=8)
+    canvas = tk.Canvas(main_grid, width=900, height=700, bg=main_back_c, highlightbackground='#4e4c70', highlightthickness=8)
     canvas.grid(column = 1, row = 0)
     
     # Elementu klases instantizacija
-    elements = Screen_elements(window, main_grid, canvas) # window ir canvas perduodami wire, ev ir resistor klasem, kad zinotu, kur piesti viska
+    elements = Screen_elements(window, main_grid, canvas) # window ir canvas perduodami, kad visi objektai zinotu, kur piesti viska reikia
 
 
-    # lambda del to, kad funkcija turi nueiti su parametrais
     add_resistor_button = tk.Button(
         subgrid1, 
-        text="Resistor", 
+        text="Add Resistor", 
         background=button_bg_color1,
         foreground=button_fg_c,
         activebackground=button_abg_color1,
@@ -582,8 +686,9 @@ def main():
         font=("Arial", 16, 'bold'),
         command=elements.add_resistor).grid(column = 0, row = 0, padx = 10, pady = 10)
 
-    add_wire_button = tk.Button(subgrid1, 
-        text="Wire",
+    add_wire_button = tk.Button(
+        subgrid1, 
+        text="Add Wire",
         background=button_bg_color1,
         foreground=button_fg_c,
         activebackground=button_abg_color1,
@@ -598,8 +703,9 @@ def main():
         font=("Arial", 16, 'bold'),
         command=elements.add_wire).grid(column = 0, row = 1, padx = 10, pady = 10)
 
-    add_evs_button = tk.Button(subgrid1, 
-        text="EV source",
+    add_evs_button = tk.Button(
+        subgrid1, 
+        text="Add EV source",
         background=button_bg_color1,
         foreground=button_fg_c,
         activebackground=button_abg_color1,
@@ -613,8 +719,25 @@ def main():
         cursor='hand2',
         font=("Arial", 16, 'bold'),
         command=elements.add_ev_source).grid(column = 0, row = 2, padx = 10, pady = 10)
+    
+    delete_button = tk.Button(
+        subgrid1,
+        text="Delete \ncomponent",
+        background=button_bg_color2,
+        foreground=button_fg_c,
+        activebackground=button_abg_color2,
+        activeforeground=button_fg_c,
+        highlightthickness=2,
+        highlightbackground=button_bg_color2,
+        highlightcolor='WHITE',
+        width=13, 
+        height=2,
+        border=0,
+        cursor='hand2',
+        font=("Arial", 16, 'bold')).grid(column = 0, row = 3, padx = 10, pady = 10)
 
-    simulate_button = tk.Button(subgrid2,
+    simulate_button = tk.Button(
+        subgrid2,
         text="Simulate",
         background=button_bg_color2,
         foreground=button_fg_c,
@@ -627,7 +750,9 @@ def main():
         height=2,
         border=0,
         cursor='hand2',
-        font=("Arial", 16, 'bold')).grid(column = 0, row = 0, padx = 10, pady = 10)
+        font=("Arial", 16, 'bold'),
+        command=elements.basic_series_simulation_start).grid(column = 0, row = 0, padx = 10, pady = 10)
+
 
     window.mainloop()
 
