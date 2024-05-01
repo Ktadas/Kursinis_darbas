@@ -1,6 +1,10 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, PhotoImage, Label
+
 import math
+import matplotlib.pyplot as plt
+from datetime import datetime
+
 from abc import ABC, abstractmethod
 
 from component_cls_constants import EVSConstants, ResistorConstants, ContactOffsets, TextOffset
@@ -280,7 +284,6 @@ class Screen_elements:
             # Jeigu komponentu pakanka, simuliacija pradedama
             self.complete_basic_series_simulation()
 
-
     def complete_basic_series_simulation(self):
         # gaunama pagrindinio saltinio itampa
         # kadangi, simuliatorius kol kas leidzia tik viena saltini, tai paimamas tik pirmas ir vienintelis narys 
@@ -297,29 +300,55 @@ class Screen_elements:
         # Pagal Omo desni U = RI (U = R_i*circuit_current) apskaiciuojamos rezistoriu itampos
         resistor_voltages = [(name, r_i*circuit_current) for name, r_i in resistor_values] # perrasomi rezistoriu vardai ir apskaiciuojamos ju itampos
 
-        self.show_complete_basic_series_simulation_results(mainvoltage, circuit_current, resistor_voltages)
-
         # Potencialu diagrama
+        image_to_display = self.draw_potential_diagram(resistor_voltages)
 
-        
+        self.show_complete_basic_series_simulation_results(mainvoltage, circuit_current, resistor_voltages, image_to_display)
 
-    def show_complete_basic_series_simulation_results(self, mainvoltage, circuit_current, resistor_voltages):
+    def draw_potential_diagram(self, resistor_voltages):
+        # Sukuriamos asiu vertes
+        x = [name for name, _ in resistor_voltages]
+        y = [value for _, value in resistor_voltages]
+
+        print(x)
+        print(y)
+
+        # Sukuriama potencialu diagrama, interfacas kaip per matlab
+        plt.close() # Uzdaromos praeitos diagramos, kad nebutu piesiama ant virsaus
+        plt.plot(x, y, "-o")
+        plt.title("Potential diagram")
+        plt.xlabel("Components")
+        plt.ylabel("Potentials, V")
+
+        now = datetime.now()
+        time_string = now.strftime("%Y%m%d_%H%M%S")
+
+        image_name = f"Kursinis_darbas/Simulation_results/potential_diagram{time_string}.png"
+        # Issaugoma diagrama
+        plt.savefig(image_name)
+
+        return image_name
+
+    def show_complete_basic_series_simulation_results(self, mainvoltage, circuit_current, resistor_voltages, image_to_display):
         self.results_window = tk.Toplevel(self.window) # Naujas top lygio langas rezultatu atvaizdavimui
         self.results_window.title("Simulation results")
-        self.results_window.geometry("500x500")
+        self.results_window.geometry("640x800")
 
         listbox = tk.Listbox(self.results_window) # Elementas listams suvesti
         listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True) # Listo teksto komponento centravimas ir t.t.
+
+        image = PhotoImage(file=image_to_display)
+        image_label = Label(self.results_window, image=image)
+        image_label.image = image # Kad neissitrintu diagrama
+        image_label.pack(padx=10, pady=10)
+        image_label.pack(expand=True)
 
         listbox.insert(tk.END, f"Circuit voltage: {mainvoltage:.7f} V") # Atvaizduojami grandines itampa ir srove
         listbox.insert(tk.END, f"Circuit current: {circuit_current:.7f} A")
 
         for name, voltage in resistor_voltages: # Atvaizduojamos rezistoriu itampos
             listbox.insert(tk.END, f"{name}: {voltage:.7f} V")
-
-
         
-
     def display_short_message(self, send_message, time=1800):
         # Metodas error zinutems
 
@@ -644,7 +673,6 @@ button_abg_color1 = '#735d6f'
 
 button_bg_color2 = '#4c705b'
 button_abg_color2 = '#5b7d69'
-
 
 button_fg_c = 'BLACK'
 
