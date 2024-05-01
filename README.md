@@ -4,9 +4,9 @@
 
 1. What is your application?
 2. How to run the program?
-  3. `pip install tkinter`
-  4. `pip install matplotlib`
-6. How to use the program?
+  1. `pip install tkinter`
+  2. `pip install matplotlib`
+3. How to use the program?
 
 ## Body/Analysis
 
