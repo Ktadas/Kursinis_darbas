@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, PhotoImage, Label
+from tkinter import messagebox
 
 import os
 import math
@@ -226,7 +226,7 @@ class ComponentDirector():
         return builder.get_component()
     
 
-class Screen_elements:
+class ScreenElements:
     def __init__(self, main_window, window, canvas):
         self.resistors = []
         self.evsources = []
@@ -235,6 +235,8 @@ class Screen_elements:
         self.window = window
         self.main_window = main_window
         # self.resistorCount Neaisku, ar reikes, ar tiesiog su listo dydziu apsieisiu
+
+        self.observers = [] # objektai, kuriem reikia atnaujinti dependacy injection, kol kas tik SimulatorEngine
 
         self.popup = None # Palceholderis zinutes popupui, None dar del patikrinimo, ar jau atidarytas langas toks, kad nesikartotu. *****LEGACY*****
 
@@ -251,6 +253,7 @@ class Screen_elements:
             resistor_obj = self.component_director.buildComponent(resistor) # Inicializuojami parametrai, grazinamas paruostas objektas
 
             self.resistors.append(resistor_obj)
+            self.observer_notify() # Atnaujinami listai, tiem, kas turi depnedancy injection
             print(f"Appended resistor {self.resistors[-1]}") # paskutini sarase parodau
 
     def add_ev_source(self):
@@ -263,6 +266,7 @@ class Screen_elements:
             evsource_obj = self.component_director.buildComponent(evsource)
 
             self.evsources.append(evsource_obj)
+            self.observer_notify() # Atnaujinami listai, tiem, kas turi depnedancy injection
             print(f"Appended wire {self.evsources[-1]}") # paskutini sarase parodau
 
     def add_wire(self):
@@ -273,6 +277,55 @@ class Screen_elements:
         else:
             self.wires.append(Wire(self.window, self.canvas, self.resistors, self.evsources))
             print(f"Appended wire {self.wires[-1]}") # paskutini sarase parodau
+
+    def add_observer(self, observer):
+        # Jeigu nera dependacy injection sekimo, tai ji pridedame
+        if observer not in self.observers:
+            self.observers.append(observer)
+
+    def observer_notify(self):
+        # Paupdatinami nauji listai, jeigu prideti nauji komponentai.
+        for observer in self.observers:
+            observer.updateComponentLists(self.resistors, self.evsources)
+        
+    def display_short_message(self, send_message, time=1800):
+        # Metodas error zinutems
+
+        if self.popup is None:
+            # Mini lango objektas
+            self.popup = tk.Toplevel(self.main_window)
+            self.popup.title("asd")
+            self.popup.geometry("280x140")
+
+            # Teksto lauko objektas
+            label = tk.Label(self.popup, text=send_message, font=("Arial", 12, 'bold'))
+            label.pack(side="top", fill="both", expand=True, padx=20, pady=20)
+
+            self.popup.after(time, self.display_short_message_destroy) # Paduodamas laikas, kiek laikyti ijungta ir tada ka iskviesti po laiko (istrinamas objektas)
+
+    def display_short_message_destroy(self):
+        self.popup.destroy()
+        self.popup = None
+
+    def open_delete_component_window(self):
+        # atidaromas langas, kuris parodo visus komponentus, kuriuos galima trinti
+        pass
+
+    def delete_component(self):
+        # component.handle_component_delete
+        # wire.handle_component_delete
+        pass
+            
+
+class SimulatorEngine():
+    def __init__(self, window):
+        self.resistors = []
+        self.evsources = []
+        self.window = window
+
+    def updateComponentLists(self, resistors, evsources):
+        self.resistors = resistors
+        self.evsources = evsources
     
     def basic_series_simulation_start(self):
         if len(self.evsources) == 0:
@@ -345,8 +398,8 @@ class Screen_elements:
         listbox = tk.Listbox(self.results_window) # Elementas listams suvesti
         listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True) # Listo teksto komponento centravimas ir t.t.
 
-        image = PhotoImage(file=image_to_display)
-        image_label = Label(self.results_window, image=image)
+        image = tk.PhotoImage(file=image_to_display)
+        image_label = tk.Label(self.results_window, image=image)
         image_label.image = image # Kad neissitrintu diagrama
         image_label.pack(padx=10, pady=10)
         image_label.pack(expand=True)
@@ -356,35 +409,64 @@ class Screen_elements:
 
         for name, voltage in resistor_voltages: # Atvaizduojamos rezistoriu itampos
             listbox.insert(tk.END, f"{name}: {voltage:.7f} V")
+
+        # auto issaugojimas i faila
+        self.save_results_txt(mainvoltage, circuit_current, resistor_voltages)
+
+    def save_results_txt(self, mainvoltage, circuit_current, resistor_voltages):
+        # Sukuriamas failo vardas su path
+        path_name = "Kursinis_darbas/Simulation_results/"
         
-    def display_short_message(self, send_message, time=1800):
-        # Metodas error zinutems
+        # Jeigu nera, sukuriamas path
+        if not os.path.exists(path_name):
+            os.makedirs(path_name)
 
-        if self.popup is None:
-            # Mini lango objektas
-            self.popup = tk.Toplevel(self.main_window)
-            self.popup.title("asd")
-            self.popup.geometry("280x140")
+        now = datetime.now()
+        time_string = now.strftime("%Y%m%d_%H%M%S")
 
-            # Teksto lauko objektas
-            label = tk.Label(self.popup, text=send_message, font=("Arial", 12, 'bold'))
-            label.pack(side="top", fill="both", expand=True, padx=20, pady=20)
+        with open(f"{path_name}Simulation_results.txt", 'a') as file: # Atidaromas failas, append rezimu
+            # Irasomas simuliacijos laikas:
+            file.write(f"Simulation time: {time_string}| ")
 
-            self.popup.after(time, self.display_short_message_destroy) # Paduodamas laikas, kiek laikyti ijungta ir tada ka iskviesti po laiko (istrinamas objektas)
+            # Irasomi grandines itampa ir srove
+            file.write(f"Circuit voltage: {mainvoltage:.7f} V |")
+            file.write(f"Circuit current: {circuit_current:.7f} A |")
 
-    def display_short_message_destroy(self):
-        self.popup.destroy()
-        self.popup = None
+            for name, voltage in resistor_voltages: # Atvaizduojamos rezistoriu itampos
+                file.write(f"{name}: {voltage:.7f} V|")
 
-    def open_delete_component_window(self):
-        # atidaromas langas, kuris parodo visus komponentus, kuriuos galima trinti
-        pass
+            file.write("\n")
 
-    def delete_component(self):
-        # component.handle_component_delete
-        # wire.handle_component_delete
-        pass
+    def load_results_from_txt(self):
+        path_name = "Kursinis_darbas/Simulation_results/"
+
+        try:
+            with open(f"{path_name}Simulation_results.txt", 'r') as file:
+                file_read_text = file.read()
             
+            results_window = tk.Toplevel(self.window)
+            results_window.title("Past simulation results")
+            results_window.geometry("600x400") 
+
+            # Scrolinimo funkcija
+            scrollbar = tk.Scrollbar(results_window)
+            scrollbar.pack(side='right', fill='y')
+
+            # Teksto laukas
+            content_text = tk.Text(results_window, wrap='word', yscrollcommand=scrollbar.set)
+            content_text.insert('1.0', file_read_text)
+            content_text['state'] = 'disabled' # Negalima redaguoti teksto
+            content_text.pack(expand=True, fill='both')
+
+            # Scrolinimo konfiguracija papildoma
+            scrollbar.config(command=content_text.yview)
+
+        except FileNotFoundError:
+            messagebox.showerror("Error", "File was not found")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
+
 
 class Wire:
     def __init__(self, window, canvas, resistors, evsources):
@@ -664,7 +746,54 @@ class Component():
     def return_component_name(self):
         return f"{self.name}{self._id}"
 
-    
+
+
+
+class StyledButtonInit(tk.Button):
+    # Pagrindines naudojamos spalvos
+    main_back_c = '#020f12'
+    button_bg_color1 = '#704c6a'
+    button_abg_color1 = '#735d6f'
+    button_bg_color2 = '#4c705b'
+    button_abg_color2 = '#5b7d69'
+    button_fg_c = 'BLACK'
+
+
+    def __init__(self, parent, text, command = None, style='greenstyle', **kwargs):
+        self.button_styles = {
+            'greenstyle': {
+                'background': StyledButtonInit.button_bg_color2,
+                'foreground': StyledButtonInit.button_fg_c,
+                'activebackground': StyledButtonInit.button_abg_color2,
+                'activeforeground': StyledButtonInit.button_fg_c,
+                'highlightthickness': 2,
+                'highlightbackground': StyledButtonInit.button_bg_color2,
+                'highlightcolor': 'WHITE',
+                'width': 13, 
+                'height': 2,
+                'border': 0,
+                'cursor': 'hand2',
+                'font': ("Arial", 16, 'bold')
+            },
+            'purplestyle': {
+                'background': StyledButtonInit.button_bg_color1,
+                'foreground': StyledButtonInit.button_fg_c,
+                'activebackground': StyledButtonInit.button_abg_color1,
+                'activeforeground': StyledButtonInit.button_fg_c,
+                'highlightthickness': 2,
+                'highlightbackground': StyledButtonInit.button_bg_color1,
+                'highlightcolor': 'WHITE',
+                'width': 13, 
+                'height': 2,
+                'border': 0,
+                'cursor': 'hand2',
+                'font': ("Arial", 16, 'bold')
+            }
+        }
+        # isrenkama is dictionary, reikiamas stilius, neradus default yra zalias mygtukas
+        chosen_style = self.button_styles.get(style, self.button_styles['greenstyle'])
+        chosen_style.update(**kwargs) # Pridedami ir papildomi parametrai paduoti, jeigu reikia
+        super().__init__(parent, text=text, command=command, **chosen_style) # Inicializuojama tk.Button klase, perduodami tie patys parametrai
 
 # Lango framu isdestymas:
 # window:
@@ -674,123 +803,99 @@ class Component():
 #       column2: subgrid2(button, textbox)
 # 
 
-main_back_c = '#020f12'
+class ClsMainUI(StyledButtonInit):
+    def __init__(self):
+        self.window = None
+        self.main_grid = None
+        self.subgrid1 = None
+        self.subgrid2 = None
 
-button_bg_color1 = '#704c6a'
-button_abg_color1 = '#735d6f'
+        self.canvas = None
 
-button_bg_color2 = '#4c705b'
-button_abg_color2 = '#5b7d69'
+        self.screenElements = None # Pagrindinis teisingo komponentu pridejimo objektas
+        self.simulatorEngine = None # Pagrindinis simuliavimo objektas
 
-button_fg_c = 'BLACK'
+    # Inicializuojamas ir atidaromas pagrindinis programos exe langas
+    def initMainWindow(self):
+        self.window = tk.Tk() 
+        self.window.title("Circuit simulator")
+
+    # Inicializuojami layouto komponentai, pagrindinis lango grid'as ir jo subgrid'ai, taip pat canvas objektas, kuris talpins komponentus
+    def setupMainWindowComponents(self):
+        self.main_grid = tk.Frame(self.window, bg=ClsMainUI.main_back_c, pady=15)
+        self.main_grid.pack(expand=True)
+
+        self.subgrid1 = tk.Frame(self.main_grid, bg=ClsMainUI.main_back_c)
+        self.subgrid1.grid(column=0, row=0)
+        self.subgrid2 = tk.Frame(self.main_grid, bg=ClsMainUI.main_back_c)
+        self.subgrid2.grid(column=2, row=0)
+
+        self.canvas = tk.Canvas(self.main_grid, width=900, height=700, bg=ClsMainUI.main_back_c, highlightbackground='#4e4c70', highlightthickness=8)
+        self.canvas.grid(column = 1, row = 0)
+
+    # Inicializuojamos pagrindines dvi simuliatoriaus klases, pacio simuliatoriaus ir piestu elementu valdymo klase.
+    def initMainSimulatorCls(self):
+        self.screenElements = ScreenElements(self.window, self.main_grid, self.canvas) # window ir canvas perduodami, kad visi objektai zinotu, kur piesti viska reikia
+        self.simulatorEngine = SimulatorEngine(self.window) 
+        self.screenElements.add_observer(self.simulatorEngine)
+
+    # Sukuriami mygtukai, ju listeneriai ir prisegamos funkcijos
+    def setupButtonListeners(self):
+        add_resistor_button = StyledButtonInit(
+            self.subgrid1, 
+            text="Add Resistor",
+            style='purplestyle',
+            command=self.screenElements.add_resistor)
+        add_resistor_button.grid(column = 0, row = 0, padx = 10, pady = 10)
+
+        add_wire_button = StyledButtonInit(
+            self.subgrid1, 
+            text="Add Wire",
+            style='purplestyle',
+            command=self.screenElements.add_wire)
+        add_wire_button.grid(column = 0, row = 1, padx = 10, pady = 10)
+
+        add_evs_button = StyledButtonInit(
+            self.subgrid1, 
+            text="Add EV source",
+            style='purplestyle',
+            command=self.screenElements.add_ev_source)
+        add_evs_button.grid(column = 0, row = 2, padx = 10, pady = 10)
+        
+        delete_button = StyledButtonInit(
+            self.subgrid1,
+            text="Delete\ncomponent",
+            style='greenstyle')
+        delete_button.grid(column = 0, row = 3, padx = 10, pady = 10)
+
+        simulate_button = StyledButtonInit(
+            self.subgrid2,
+            text="Simulate",
+            style='greenstyle',
+            command=self.simulatorEngine.basic_series_simulation_start)
+        simulate_button.grid(column = 0, row = 0, padx = 10, pady = 10)
+
+        results_button = StyledButtonInit(
+            self.subgrid2,
+            text="All\nresults",
+            style='greenstyle',
+            command=self.simulatorEngine.load_results_from_txt)
+        results_button.grid(column = 0, row = 1, padx = 10, pady = 10)
+
+    # Run:)
+    def runUI(self):
+        self.window.mainloop()
 
 
 def main():
-    window = tk.Tk()
-    window.title("Circuit simulator")
-
-    main_grid = tk.Frame(window, bg=main_back_c, pady=15)
-    main_grid.pack(fill="both", expand=True)
-
-    subgrid1 = tk.Frame(main_grid, bg=main_back_c)
-    subgrid1.grid(column=0, row=0)
-    subgrid2 = tk.Frame(main_grid, bg=main_back_c)
-    subgrid2.grid(column=2, row=0)
+    mainProgram = ClsMainUI()
+    mainProgram.initMainWindow()
+    mainProgram.setupMainWindowComponents()
+    mainProgram.initMainSimulatorCls()
+    mainProgram.setupButtonListeners()
+    mainProgram.runUI()    
 
 
-    canvas = tk.Canvas(main_grid, width=900, height=700, bg=main_back_c, highlightbackground='#4e4c70', highlightthickness=8)
-    canvas.grid(column = 1, row = 0)
-    
-    # Elementu klases instantizacija
-    elements = Screen_elements(window, main_grid, canvas) # window ir canvas perduodami, kad visi objektai zinotu, kur piesti viska reikia
-
-
-    add_resistor_button = tk.Button(
-        subgrid1, 
-        text="Add Resistor", 
-        background=button_bg_color1,
-        foreground=button_fg_c,
-        activebackground=button_abg_color1,
-        activeforeground=button_fg_c,
-        highlightthickness=2,
-        highlightbackground=button_bg_color1,
-        highlightcolor='WHITE',
-        width=13, 
-        height=2,
-        border=0,
-        cursor='hand2',
-        font=("Arial", 16, 'bold'),
-        command=elements.add_resistor).grid(column = 0, row = 0, padx = 10, pady = 10)
-
-    add_wire_button = tk.Button(
-        subgrid1, 
-        text="Add Wire",
-        background=button_bg_color1,
-        foreground=button_fg_c,
-        activebackground=button_abg_color1,
-        activeforeground=button_fg_c,
-        highlightthickness=2,
-        highlightbackground=button_bg_color1,
-        highlightcolor='WHITE',
-        width=13, 
-        height=2,
-        border=0,
-        cursor='hand2',
-        font=("Arial", 16, 'bold'),
-        command=elements.add_wire).grid(column = 0, row = 1, padx = 10, pady = 10)
-
-    add_evs_button = tk.Button(
-        subgrid1, 
-        text="Add EV source",
-        background=button_bg_color1,
-        foreground=button_fg_c,
-        activebackground=button_abg_color1,
-        activeforeground=button_fg_c,
-        highlightthickness=2,
-        highlightbackground=button_bg_color1,
-        highlightcolor='WHITE',
-        width=13, 
-        height=2,
-        border=0,
-        cursor='hand2',
-        font=("Arial", 16, 'bold'),
-        command=elements.add_ev_source).grid(column = 0, row = 2, padx = 10, pady = 10)
-    
-    delete_button = tk.Button(
-        subgrid1,
-        text="Delete \ncomponent",
-        background=button_bg_color2,
-        foreground=button_fg_c,
-        activebackground=button_abg_color2,
-        activeforeground=button_fg_c,
-        highlightthickness=2,
-        highlightbackground=button_bg_color2,
-        highlightcolor='WHITE',
-        width=13, 
-        height=2,
-        border=0,
-        cursor='hand2',
-        font=("Arial", 16, 'bold')).grid(column = 0, row = 3, padx = 10, pady = 10)
-
-    simulate_button = tk.Button(
-        subgrid2,
-        text="Simulate",
-        background=button_bg_color2,
-        foreground=button_fg_c,
-        activebackground=button_abg_color2,
-        activeforeground=button_fg_c,
-        highlightthickness=2,
-        highlightbackground=button_bg_color2,
-        highlightcolor='WHITE',
-        width=13, 
-        height=2,
-        border=0,
-        cursor='hand2',
-        font=("Arial", 16, 'bold'),
-        command=elements.basic_series_simulation_start).grid(column = 0, row = 0, padx = 10, pady = 10)
-
-
-    window.mainloop()
 
 if __name__ == "__main__":
     main()
