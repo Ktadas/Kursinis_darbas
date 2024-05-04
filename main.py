@@ -509,8 +509,8 @@ class Wire:
         for resistor in self.resistors:
             for index, contact in enumerate(resistor.contact_coords): # Labai svarbu index, nes jis po to nusiunciamas patikrinti, ar toje pozicijoje jau yra laidas.
                 # Paskaiciuoju centra apskritimo
-                cx = contact[0]+10 # is n nario listo, jis listas, jo pirmas narys x
-                cy = contact[1]-15 # is n nario listo, jis listas, jo antras narys y
+                cx = contact[0]+5 # is n nario listo, jis listas, jo pirmas narys x
+                cy = contact[1]+5 # is n nario listo, jis listas, jo antras narys y
                 distance = math.sqrt(((cx-x)**2)+((cy-y)**2)) # randu atstuma nuo centro iki peles paspaudimo
                 print(f"distance 1: {distance}")
                 if distance<=20: # Jeigu atstumas mazesnis/lygus 20, tada sakau, kad pataikiau paspausti, breakinu ir pradedu/baigiu piesti laida
@@ -523,8 +523,8 @@ class Wire:
         for evsource in self.evsources:
             for index, contact in enumerate(evsource.contact_coords):  # Labai svarbu index, nes jis po to nusiunciamas patikrinti, ar toje pozicijoje jau yra laidas.
                 # Paskaiciuoju centra apskritimo
-                cx = contact[0]+10 # is n nario listo, jis listas, jo pirmas narys x
-                cy = contact[1]-15 # is n nario listo, jis listas, jo antras narys y
+                cx = contact[0]+5 # is n nario listo, jis listas, jo pirmas narys x
+                cy = contact[1]+5 # is n nario listo, jis listas, jo antras narys y
                 distance = math.sqrt(((cx-x)**2)+((cy-y)**2)) # randu atstuma nuo centro iki peles paspaudimo
                 print(f"distance 1: {distance}")
                 if distance<=20: # Jeigu atstumas mazesnis/lygus 20, tada sakau, kad pataikiau paspausti, breakinu ir pradedu/baigiu piesti laida
@@ -745,7 +745,6 @@ class Component():
 
     def return_component_name(self):
         return f"{self.name}{self._id}"
-
 
 
 
