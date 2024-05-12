@@ -49,7 +49,7 @@ Analysis and explanation of the program's implementation.
     - abstract class implementation is imported from the standard python module abc
 - Class diagram:
     
-    ![Kursinio darbo UML.jpeg](README_images/Kursinio_darbo_UML.jpeg)
+    ![Kursinio darbo UML.jpeg](README_images/Kursinio_darbo_UML.png)
     
 - Class description and function
     - StyledButtonInit()
